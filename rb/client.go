@@ -2,15 +2,16 @@ package rb
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
+	"strings"
+	"time"
 )
 
-type ServerSocket struct {
-	Addr string
-	Port int
-}
+const (
+	wakeTimes   int           = 3
+	wakeWaiting time.Duration = time.Second * 10
+)
 
 func checkError(e error) {
 	if e != nil {
@@ -18,18 +19,38 @@ func checkError(e error) {
 	}
 }
 
-var testServer = ServerSocket{Addr: "111.111.111.111", Port: 1111}
+// StartClient ...
+func StartClient(ip string, port int) {
+	tcpClient(ip, port)
+}
 
-func tcpClient(msg string, ss ServerSocket) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", ss.Addr+":"+string(ss.Port))
+func tcpClient(ip string, port int) {
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", ip, port))
 	checkError(err)
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
-	defer conn.Close()
+
 	checkError(err)
-	_, err = conn.Write([]byte(msg))
-	checkError(err)
-	result, err := ioutil.ReadAll(conn)
-	checkError(err)
-	_ = result
+	buf := make([]byte, 1024)
+
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			conn.Close()
+			time.Sleep(time.Second * 10)
+			tcpClient(ip,port)
+		}
+		result := string(buf[0:n])
+		fmt.Println(string(buf[0:n]))
+		if strings.HasPrefix(result, "WAKE:") {
+			mac := result[5:]
+			for i := 0; i < wakeTimes; i++ {
+				wake(mac)
+				_, err = conn.Write([]byte("waking:" + mac))
+			}
+			_, err = conn.Write([]byte("OK:" + mac))
+			checkError(err)
+		}
+
+	}
 
 }

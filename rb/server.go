@@ -5,8 +5,30 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
+
+type lockedConnsMap struct {
+	data map[string]net.Conn
+	lock sync.Mutex
+}
+
+func (lcm lockedConnsMap) get(k string) net.Conn {
+	lcm.lock.Lock()
+	defer lcm.lock.Unlock()
+	return lcm.data[k]
+}
+func (lcm lockedConnsMap) set(k string, v net.Conn) {
+	lcm.lock.Lock()
+	defer lcm.lock.Unlock()
+	lcm.data[k] = v
+}
+func (lcm lockedConnsMap) del(k string) {
+	lcm.lock.Lock()
+	defer lcm.lock.Unlock()
+	delete(lcm.data, k)
+}
 
 // 启动地址
 var addrsToBoot []string
@@ -17,13 +39,14 @@ func StartServer(port int) {
 }
 
 func tcpServer(port int) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%d",port))
+	tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf(":%d", port))
 	checkError(err)
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	checkError(err)
 
 	// 连接池
 	conns := make(map[string]net.Conn)
+	lcm := lockedConnsMap{data: conns}
 
 	// 消息通道
 	messageChan := make(chan string, 10)
@@ -34,22 +57,31 @@ func tcpServer(port int) {
 		if err != nil {
 			continue
 		}
-
-		conns[conn.RemoteAddr().String()] = conn
-		go handler(conn, &conns, messageChan)
-		go broadcast( &conns)
-
+		lcm.set(conn.RemoteAddr().String(), conn)
+		//conns[conn.RemoteAddr().String()] = conn
+		go handler(conn, &lcm, messageChan)
+		go broadcast(&lcm)
+		go printClientChan(messageChan)
+	}
+}
+func printClientChan(messageChan chan string) {
+	for {
+		msg := <-messageChan
+		if len(msg) > 1 {
+			fmt.Println(msg)
+		}
 	}
 }
 
-func broadcast( conns *map[string]net.Conn,) {
+func broadcast(lcm *lockedConnsMap) {
 
 	for {
-		for _, conn := range *conns {
+		for key, conn := range lcm.data {
 			for _, mac := range addrsToBoot {
-				_, err := conn.Write([]byte("WAKE:" + mac ))
+				_, err := conn.Write([]byte("WAKE:" + mac))
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "broadcast faild %s\n", mac)
+					fmt.Fprintf(os.Stderr, "broadcast to %s faild %s: %s\n", key, mac, err)
+					lcm.del(key)
 				}
 			}
 		}
@@ -58,21 +90,23 @@ func broadcast( conns *map[string]net.Conn,) {
 		for k, v := range addrsToBoot {
 			fmt.Printf("** %d  ---- %s **\n", k, v)
 		}
-		for k,_ := range *conns {
+		for k, v := range lcm.data {
 			fmt.Printf("** CONN ---- %s **\n", k)
+			_ = v
 		}
 
 	}
 
 }
 
-func handler(conn net.Conn, conns *map[string]net.Conn, messages chan string) {
+func handler(conn net.Conn, lcm *lockedConnsMap, messages chan string) {
 	buf := make([]byte, 1024)
 
 	for {
 		n, err := conn.Read(buf)
 		if err != nil {
-			delete(*conns, conn.RemoteAddr().String())
+			//delete(*conns, conn.RemoteAddr().String())
+			lcm.del(conn.RemoteAddr().String())
 			conn.Close()
 		}
 		rcvString := string(buf[0:n])
@@ -87,7 +121,7 @@ func handler(conn net.Conn, conns *map[string]net.Conn, messages chan string) {
 			}
 
 		}
-		messages <- rcvString
+		messages <- fmt.Sprintf("~~%s Say: %s", conn.RemoteAddr().String(), rcvString)
 	}
 }
 
@@ -98,7 +132,7 @@ func input() {
 		fmt.Scanln(&opt, &obj)
 		switch opt {
 		case "my":
-			if obj == "1"{
+			if obj == "1" {
 				mac := "00:e0:70:1b:77:92"
 				addrsToBoot = append(addrsToBoot, mac)
 				fmt.Printf("to wake %s\n", mac)

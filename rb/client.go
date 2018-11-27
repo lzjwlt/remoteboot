@@ -15,7 +15,7 @@ const (
 
 func checkError(e error) {
 	if e != nil {
-		fmt.Fprintf(os.Stderr, "error: %s", e.Error())
+		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
 	}
 }
 
@@ -30,6 +30,27 @@ func tcpClient(ip string, port int) {
 	conn, err := net.DialTCP("tcp", nil, tcpAddr)
 
 	checkError(err)
+
+	messageChan := make(chan string, 10)
+
+	go printChan(messageChan)
+	go recvMessage(conn, messageChan, ip, port)
+	for {
+		time.Sleep(time.Second * 10)
+	}
+
+}
+
+func printChan(messageChan chan string) {
+	for {
+		msg := <-messageChan
+		if len(msg) > 1 {
+			fmt.Println("~~Server Say:" + msg)
+		}
+	}
+}
+
+func recvMessage(conn net.Conn, messageChan chan string, ip string, port int) {
 	buf := make([]byte, 1024)
 
 	for {
@@ -37,20 +58,25 @@ func tcpClient(ip string, port int) {
 		if err != nil {
 			conn.Close()
 			time.Sleep(time.Second * 10)
-			tcpClient(ip,port)
+			tcpClient(ip, port)
 		}
-		result := string(buf[0:n])
-		fmt.Println(string(buf[0:n]))
-		if strings.HasPrefix(result, "WAKE:") {
-			mac := result[5:]
-			for i := 0; i < wakeTimes; i++ {
-				wake(mac)
-				_, err = conn.Write([]byte("waking:" + mac))
-			}
-			_, err = conn.Write([]byte("OK:" + mac))
-			checkError(err)
+		msg := string(buf[0:n])
+		messageChan <- msg
+
+		if strings.HasPrefix(msg, "WAKE:") {
+			mac := msg[5:]
+			go handWake(conn, mac)
 		}
 
 	}
+}
 
+func handWake(conn net.Conn, mac string) {
+	for i := 0; i < wakeTimes; i++ {
+		err := wake(mac)
+		checkError(err)
+		fmt.Printf("waking: %s\n", mac)
+	}
+	_, err := conn.Write([]byte("OK:" + mac))
+	checkError(err)
 }

@@ -1,14 +1,13 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strconv"
+
 	"./rb"
 )
 
-func main() {
-	rb.StartClient("lzjwlt.cn", 10003)
-}
-
-/*
 func main() {
 	args := os.Args
 	if len(args) < 3 {
@@ -28,7 +27,7 @@ func main() {
 		rb.StartServer(b)
 	case "client":
 		if len(args) < 4 {
-			fmt.Fprintf(os.Stderr, "error : args to short\n")
+			fmt.Fprintf(os.Stderr, "error : args too short\n")
 			return
 		}
 		b, err := strconv.Atoi(args[3])
@@ -41,4 +40,3 @@ func main() {
 	}
 
 }
-*/

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
-	"os"
-	"strconv"
-
 	"./rb"
 )
 
+func main() {
+	rb.StartClient("lzjwlt.cn", 10003)
+}
 
+/*
 func main() {
 	args := os.Args
 	if len(args) < 3 {
@@ -41,3 +41,4 @@ func main() {
 	}
 
 }
+*/

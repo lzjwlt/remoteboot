@@ -121,7 +121,10 @@ func handler(conn net.Conn, lcm *lockedConnsMap, messages chan string) {
 			}
 
 		}
-		messages <- fmt.Sprintf("~~%s Say: %s", conn.RemoteAddr().String(), rcvString)
+		if len(rcvString) > 1 {
+			messages <- fmt.Sprintf("~~%s Say: %s", conn.RemoteAddr().String(), rcvString)
+		}
+
 	}
 }
 

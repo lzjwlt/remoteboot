@@ -33,7 +33,7 @@ func tcpClient(ip string, port int) {
 
 	messageChan := make(chan string, 10)
 
-	go printChan(messageChan)
+	go printServerChan(messageChan)
 	go recvMessage(conn, messageChan, ip, port)
 	for {
 		time.Sleep(time.Second * 10)
@@ -41,7 +41,7 @@ func tcpClient(ip string, port int) {
 
 }
 
-func printChan(messageChan chan string) {
+func printServerChan(messageChan chan string) {
 	for {
 		msg := <-messageChan
 		if len(msg) > 1 {

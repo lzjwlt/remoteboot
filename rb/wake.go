@@ -2,15 +2,17 @@ package rb
 
 import (
 	"fmt"
+	"log"
 	"net"
 )
 
 const (
-	broadcastIP string = "255.255.255.255"
-	udpPort     int    = 9
+	udpPort int = 9
 )
 
-func sendBroadcast(bt []byte) error {
+var broadcastIPs = []string{"255.255.255.255", "192.168.199.255"}
+
+func sendBroadcast(bt []byte, broadcastIP string) error {
 	conn, err := net.DialUDP("udp", nil, &net.UDPAddr{IP: net.ParseIP(broadcastIP), Port: udpPort})
 	if err != nil {
 		return err
@@ -36,8 +38,10 @@ func wake(mac string) error {
 	if err != nil {
 		return err
 	}
-	if err := sendBroadcast(bt); err != nil {
-		return err
+	for _, ip := range broadcastIPs {
+		if err := sendBroadcast(bt, ip); err != nil {
+			log.Println(err)
+		}
 	}
 	return nil
 }

@@ -1,9 +1,11 @@
 package rb
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -79,4 +81,26 @@ func handWake(conn net.Conn, mac string) {
 	}
 	_, err := conn.Write([]byte("OK:" + mac))
 	checkError(err)
+}
+
+type ClientInfo struct {
+	Hostname string `json: hostname`
+	OS       string `json: os`
+	Arch     string `json: arch`
+}
+
+func GetClientInfo() (string, error) {
+	name, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+	goos := runtime.GOOS
+	goarch := runtime.GOARCH
+
+	ci := ClientInfo{name, goos, goarch}
+	jb, err := json.Marshal(ci)
+	if err != nil {
+		return "", err
+	}
+	return string(jb), nil
 }

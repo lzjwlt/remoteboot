@@ -1,4 +1,4 @@
-package rb
+package daemon
 
 import (
 	"bytes"

@@ -1,8 +1,9 @@
-package rb
+package daemon
 
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"runtime"
@@ -18,11 +19,12 @@ const (
 func checkError(e error) {
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
+		log.Println("error:", e.Error())
 	}
 }
 
-// StartClient ...
-func StartClient(ip string, port int) {
+// StartDaemon ...
+func StartDaemon(ip string, port int) {
 	tcpClient(ip, port)
 }
 

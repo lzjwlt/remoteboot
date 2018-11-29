@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"../../rb"
+	"../../daemon"
 )
 
 func main() {
@@ -18,5 +18,5 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error port: %s\n", args[2])
 	}
-	rb.StartClient(args[1], b)
+	daemon.StartDaemon(args[1], b)
 }

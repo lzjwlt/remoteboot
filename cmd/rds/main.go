@@ -6,7 +6,7 @@ import (
 	"os"
 	"strconv"
 
-	"../../rb"
+	"../../server"
 )
 
 func main() {
@@ -21,5 +21,5 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error port: %s\n", portStr)
 		return
 	}
-	rb.StartServer(b)
+	server.StartServer(b)
 }

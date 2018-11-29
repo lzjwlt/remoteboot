@@ -1,7 +1,8 @@
-package rb
+package server
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
@@ -12,6 +13,13 @@ import (
 type lockedConnsMap struct {
 	data map[string]net.Conn
 	lock sync.Mutex
+}
+
+func checkError(e error) {
+	if e != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
+		log.Println("error:", e.Error())
+	}
 }
 
 func (lcm lockedConnsMap) get(k string) net.Conn {

@@ -15,6 +15,10 @@ type lockedConnsMap struct {
 	lock sync.Mutex
 }
 
+func StatServer() interface{} {
+	return nil
+}
+
 func checkError(e error) {
 	if e != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", e.Error())
